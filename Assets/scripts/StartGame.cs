@@ -6,5 +6,4 @@ public class StartGame : MonoBehaviour {
 	public void ChangeToGame () {
 		Application.LoadLevel("MainScene");
 	}
-
 }

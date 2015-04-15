@@ -11,13 +11,16 @@ public class Snake : MonoBehaviour {
 	List<Transform> tail = new List<Transform>();
 	// Grow in next movement?
 	bool ate = false;
+	bool alive = true;
 	// Tail Prefab
 	public GameObject tailPrefab;
+	public GameObject gameOverPrefab;
 
 	// Use this for initialization
 	void Start () {
 		// Move the Snake every 300ms
-		InvokeRepeating("Move", 0.3f, 0.3f);    
+		//InvokeRepeating("Move", 0.3f, 0.3f);    
+		InvokeRepeating("Move", 0.1f, 0.1f);  
 	}
 	
 	// Update is called once per frame
@@ -45,37 +48,43 @@ public class Snake : MonoBehaviour {
 		// Collided with Tail or Border
 		else {
 			// ToDo 'You lose' screen
+			alive = false;
+			Instantiate(gameOverPrefab,
+			            new Vector2(0, 0),
+			            Quaternion.identity);
 		}
 	}
 
 	void Move() {
-		// Save current position (gap will be here)
-		Vector2 v = transform.position;
-		
-		// Move head into new direction (now there is a gap)
-		transform.Translate(dir);
-		
-		// Ate something? Then insert new Element into gap
-		if (ate) {
-			// Load Prefab into the world
-			GameObject g =(GameObject)Instantiate(tailPrefab,
-			                                      v,
-			                                      Quaternion.identity);
+		if (alive) {
+			// Save current position (gap will be here)
+			Vector2 v = transform.position;
 			
-			// Keep track of it in our tail list
-			tail.Insert(0, g.transform);
+			// Move head into new direction (now there is a gap)
+			transform.Translate (dir);
 			
-			// Reset the flag
-			ate = false;
-		}
-		// Do we have a Tail?
-		else if (tail.Count > 0) {
-			// Move last Tail Element to where the Head was
-			tail.Last().position = v;
-			
-			// Add to front of list, remove from the back
-			tail.Insert(0, tail.Last());
-			tail.RemoveAt(tail.Count-1);
+			// Ate something? Then insert new Element into gap
+			if (ate) {
+				// Load Prefab into the world
+				GameObject g = (GameObject)Instantiate (tailPrefab,
+				                                      v,
+				                                      Quaternion.identity);
+				
+				// Keep track of it in our tail list
+				tail.Insert (0, g.transform);
+				
+				// Reset the flag
+				ate = false;
+			}
+			// Do we have a Tail?
+			else if (tail.Count > 0) {
+				// Move last Tail Element to where the Head was
+				tail.Last ().position = v;
+				
+				// Add to front of list, remove from the back
+				tail.Insert (0, tail.Last ());
+				tail.RemoveAt (tail.Count - 1);
+			}
 		}
 	}
 }
