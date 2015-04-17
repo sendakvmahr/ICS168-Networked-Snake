@@ -1,8 +1,11 @@
-﻿using System;
+﻿// Imported by default
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
+// SQLite
 using System.Data.SQLite;
 
 namespace ConsoleApplication
@@ -10,6 +13,7 @@ namespace ConsoleApplication
     class Program
     {
         SQLiteConnection SQLite_connection;
+        ServerSocket serverSocket;
 
         static void Main(string[] args)
         {
@@ -22,12 +26,17 @@ namespace ConsoleApplication
             loadDatabase();
             System.Console.WriteLine("I am here2");
 
+
+            // Testing and reference for future password checking
             string sql = "select * from user";
             SQLiteCommand command = new SQLiteCommand(sql, SQLite_connection);
             SQLiteDataReader reader = command.ExecuteReader();
             while (reader.Read())
                 Console.WriteLine("User: " + reader["name"] + "\tPw: " + reader["password"] + "\tGames: " + reader["games"] + "\tWins: " + reader["win"]);
             System.Console.ReadLine();
+
+            serverSocket = new ServerSocket();
+            serverSocket.listen();
 
         }
 
