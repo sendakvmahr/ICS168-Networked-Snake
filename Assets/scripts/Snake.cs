@@ -6,7 +6,8 @@ using System.Linq;
 public class Snake : MonoBehaviour {
 	// Current Movement Direction
 	// (by default it moves to the right)
-	Vector2 dir = Vector2.right;
+	public Vector2 dir = Vector2.right;
+    Vector2 newDir;
 	// Keep Track of Tail
 	List<Transform> tail = new List<Transform>();
 	// Grow in next movement?
@@ -16,24 +17,31 @@ public class Snake : MonoBehaviour {
 	public GameObject tailPrefab;
 	public GameObject gameOverPrefab;
 
+    public AbstractInput inputScript;
+
+    public float movementFrequency = 0.3f;
+
+    float movementTimer = 0f;
+
 	// Use this for initialization
 	void Start () {
 		// Move the Snake every 300ms
 		//InvokeRepeating("Move", 0.3f, 0.3f);    
-		InvokeRepeating("Move", 0.1f, 0.1f);  
+		//InvokeRepeating("Move", 0.1f, 0.1f);  
 	}
 	
 	// Update is called once per frame
 	void Update() {
 		// Move in a new Direction?
-		if (Input.GetKey(KeyCode.RightArrow))
-			dir = Vector2.right;
-		else if (Input.GetKey(KeyCode.DownArrow))
-			dir = -Vector2.up;    // '-up' means 'down'
-		else if (Input.GetKey(KeyCode.LeftArrow))
-			dir = -Vector2.right; // '-right' means 'left'
-		else if (Input.GetKey(KeyCode.UpArrow))
-			dir = Vector2.up;
+        Vector2 inp = inputScript.getDirection();
+        if (inp != Vector2.zero) newDir = inp;
+        
+        movementTimer += Time.deltaTime;
+        while(movementTimer >= movementFrequency)
+        {
+            Move();
+            movementTimer -= movementFrequency;
+        }
 	}
 
 	void OnTriggerEnter2D(Collider2D coll) {
@@ -59,7 +67,13 @@ public class Snake : MonoBehaviour {
 		if (alive) {
 			// Save current position (gap will be here)
 			Vector2 v = transform.position;
-			
+
+            if (!newDir.Equals(Vector2.zero) && !Vector2.zero.Equals(newDir + dir))
+            {
+                dir = newDir;
+            }
+            newDir = Vector2.zero;
+
 			// Move head into new direction (now there is a gap)
 			transform.Translate (dir);
 			
