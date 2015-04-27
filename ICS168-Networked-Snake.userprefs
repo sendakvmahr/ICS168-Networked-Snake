@@ -1,10 +1,9 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\scripts\Snake.cs">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\scripts\Connection.cs">
     <Files>
-      <File FileName="Assets\scripts\Snake.cs" Line="53" Column="32" />
-      <File FileName="Assets\scripts\StartGame.cs" Line="8" Column="3" />
-      <File FileName="Assets\scripts\SpawnFood.cs" Line="33" Column="35" />
+      <File FileName="Assets\scripts\StartGame.cs" Line="8" Column="23" />
+      <File FileName="Assets\scripts\Connection.cs" Line="18" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
