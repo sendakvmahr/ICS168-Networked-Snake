@@ -10,6 +10,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
+using System.Security.Cryptography;
+
 namespace ConsoleApplication
 {
     // State object for reading client data asynchronously
@@ -37,6 +39,20 @@ namespace ConsoleApplication
         public AsynchronousSocketListener()
         {
         }
+
+        public static string GetHash(string password)
+        {
+            MD5 md5 = System.Security.Cryptography.MD5.Create();
+            byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(password);
+            byte[] hash = md5.ComputeHash(inputBytes);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < hash.Length; i++)
+            {
+                sb.Append(hash[i].ToString("X2"));
+            }
+            return sb.ToString();
+        }
+
 
         public static void StartListening()
         {
@@ -135,7 +151,7 @@ namespace ConsoleApplication
                     {
                         string[] information = content.Split(' ');
                         string user = information[1];
-                        string password = information[2];
+                        string password = GetHash(information[2]);
                         if (database.UserIsInDatabase(user))
                         {
                             if (database.IsCorrectPassword(user, password))
