@@ -53,8 +53,12 @@
      <Compile Include="Assets\scripts\Snake.cs" />
      <Compile Include="Assets\scripts\SpawnFood.cs" />
      <Compile Include="Assets\scripts\StartGame.cs" />
+     <None Include="Assets\plugins\x86_64\net20\Newtonsoft.Json.xml" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
+ </Reference>
+ <Reference Include="Newtonsoft.Json">
+ <HintPath>C:/Users/Public/Documents/Unity Projects/ICS168-Networked-Snake/Assets/plugins/x86_64/net20/Newtonsoft.Json.dll</HintPath>
  </Reference>
  <Reference Include="UnityEditor.iOS.Extensions.Xcode">
  <HintPath>C:/Program Files/Unity/Editor/Data/PlaybackEngines/iossupport/UnityEditor.iOS.Extensions.Xcode.dll</HintPath>

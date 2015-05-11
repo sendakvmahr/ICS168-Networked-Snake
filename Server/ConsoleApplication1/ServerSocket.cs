@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
+//Hashing
 using System.Security.Cryptography;
 
 namespace ConsoleApplication
@@ -32,14 +33,16 @@ namespace ConsoleApplication
         // Tells threads when signals have occurred.
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         // List of clients (for future, must send updates to all clients)
-        public static List<Socket> clients = new List<Socket>();
+        public static Dictionary<string, Socket> clients = new Dictionary<string, Socket>();
+        public static int numPlayers = 2;
+        public static GameState gamestate;
         // Connection to sqlite database
         static DatabaseConnection database = new DatabaseConnection();
-
         public AsynchronousSocketListener()
         {
         }
 
+        // !IMPORTANT - MOVE THIS TO CLIENT
         public static string GetHash(string password)
         {
             MD5 md5 = System.Security.Cryptography.MD5.Create();
@@ -58,12 +61,8 @@ namespace ConsoleApplication
         {
             // Data buffer for incoming data.
             byte[] bytes = new Byte[1024];
-            // Figure out how to limit properly later
-            // IPHostEntry ipHostInfo = Dns.Resolve(Dns.GetHostName());
-            // IPAddress ipAddress = ipHostInfo.AddressList[0];
-            // IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
-
-            // For now, can accept from any ip address
+            
+            // Let it accept any IP address - that's going to make things easier
             IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 11000);
 
             // listener socket is an IPV4, Stream, TCP socket
@@ -75,7 +74,6 @@ namespace ConsoleApplication
             {
                 listener.Bind(localEndPoint); 
                 listener.Listen(20);  // 20 pending connections max
-
                 while (true)
                 {
                     // Set the event to nonsignaled state.
@@ -85,7 +83,6 @@ namespace ConsoleApplication
                     listener.BeginAccept(
                         new AsyncCallback(AcceptCallback),
                         listener);
-
                     // Wait until a connection is made before continuing.
                     allDone.WaitOne();
                 }
@@ -109,11 +106,10 @@ namespace ConsoleApplication
             // Get the socket that handles the client request.
             Socket listener = (Socket)ar.AsyncState;
             Socket handler = listener.EndAccept(ar);
-
+             
             // Create the state object.
             StateObject state = new StateObject();
             state.workSocket = handler;
-            clients.Add(handler);
             handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
                 new AsyncCallback(ReadCallback), state);
         }
@@ -127,71 +123,118 @@ namespace ConsoleApplication
             Socket handler = state.workSocket;
 
             // Read data from the client socket. 
-            int bytesRead = handler.EndReceive(ar);
-            if (bytesRead > 0)
+            try
             {
-                // There  might be more data, so store the data received so far
-                state.sb.Append(Encoding.ASCII.GetString(
-                    state.buffer, 0, bytesRead));
-
-                // Check for end-of-file tag. If it is not there, read more data.
-                content = state.sb.ToString();
-                if (content.IndexOf("<EOF>") > -1)
+                int bytesRead = handler.EndReceive(ar);
+                if (bytesRead > 0)
                 {
-                    // All the data has been read from the 
-                    // client. Display it on the console.
-                    Console.WriteLine("Read {0} bytes from socket. \n\tData : {1}",
-                        content.Length, content);
-                    if (content == "ICS168 Snake Project Start <EOF>")
+                    // There  might be more data, so store the data received so far
+                    state.sb.Append(Encoding.ASCII.GetString(
+                        state.buffer, 0, bytesRead));
+
+                    // Check for end-of-file tag. If it is not there, read more data.
+                    content = state.sb.ToString();
+                    if (content.IndexOf("<EOF>") > -1)
                     {
-                        Send(handler, "Ready<EOF>");
-                        Console.WriteLine("Ready");
-                    }
-                    else if (content.StartsWith("login"))
-                    {
-                        string[] information = content.Split(' ');
-                        string user = information[1];
-                        string password = GetHash(information[2]);
-                        if (database.UserIsInDatabase(user))
+                        // All the data has been read from the 
+                        // client. Display it on the console.
+                        Console.WriteLine("Read {0} bytes from socket. \n\tData : {1}",
+                            content.Length, content);
+                        if (content == "ICS168 Snake Project Start <EOF>")
                         {
-                            if (database.IsCorrectPassword(user, password))
+                            Send(handler, "Ready<EOF>");
+                            Console.WriteLine("Ready");
+                        }
+                        else if (content.StartsWith("login"))
+                        {
+                            string[] information = content.Split(' ');
+                            string user = information[1];
+                            string password = GetHash(information[2]);
+                            Console.WriteLine(database.UserIsInDatabase(user));
+                            if (database.UserIsInDatabase(user))
                             {
-                                Send(handler, "Allowed<EOF>");
-                                Console.WriteLine("Allowed");
+                                if (database.IsCorrectPassword(user, password))
+                                {
+                                    Send(handler, "Allowed<EOF>");
+                                    Console.WriteLine("Allowed");
+                                    clients[user] = handler;
+                                    if (clients.Count == numPlayers)
+                                    {
+                                        StartGame();
+                                    }
+                                }
+                                else
+                                {
+                                    Send(handler, "Incorrect<EOF>");
+                                    Console.WriteLine("Incorrect");
+                                }
                             }
                             else
                             {
-                                Send(handler, "Incorrect<EOF>");
+                                database.AddNewUser(user, password);
+                                Send(handler, "Created<EOF>");
                                 Console.WriteLine("Incorrect");
+                                clients[user] = handler;
+                                // if #clients == 2, then start the game
+                                if (clients.Count == numPlayers)
+                                {
+                                    StartGame();
+                                }
                             }
                         }
-                        else
-                        {
-                            database.AddNewUser(user, password);
-                            Send(handler, "Created<EOF>");
-                            Console.WriteLine("Incorrect");
+                        else if (content.StartsWith("gamestate: ")) {
+                            // update gamestate with client snake position
                         }
+                        else // Incorrect protocol
+                        {
+                            Console.WriteLine("Incorrect protocol.");
+                        }
+
+                        // Setup a new state object
+                        StateObject newstate = new StateObject();
+                        newstate.workSocket = handler;
+
+                        // Call BeginReceive with a new state object
+                        // NOTE THIS IS WHERE fYOU TRY TO KEEP ON LISTENING FOR UPDATES
+                        handler.BeginReceive(newstate.buffer, 0, StateObject.BufferSize, 0,
+                        new AsyncCallback(ReadCallback), newstate);
                     }
-                    else // Incorrect protocol
+                    else
                     {
-                        Console.WriteLine("Incorrect protocol.");
+                        // Not all data received. Get more.
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                        new AsyncCallback(ReadCallback), state);
                     }
-
-                    // Setup a new state object
-                    StateObject newstate = new StateObject();
-                    newstate.workSocket = handler;
-
-                    // Call BeginReceive with a new state object
-                    handler.BeginReceive(newstate.buffer, 0, StateObject.BufferSize, 0,
-                    new AsyncCallback(ReadCallback), newstate);
-                }
-                else
-                {
-                    // Not all data received. Get more.
-                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
-                    new AsyncCallback(ReadCallback), state);
                 }
             }
+            catch (Exception e)
+            {
+                Console.WriteLine("Disconnect");
+            }
+        }
+
+        private static void StartGame()
+        {
+            Console.WriteLine("Starting");
+            gamestate = new GameState("p1", "p2");
+
+            AutoResetEvent reset = new AutoResetEvent(false);
+            TimerCallback timerDelegate = new TimerCallback(gameLoop);
+            Timer stateTimer = new Timer(timerDelegate, reset, 250, 250);
+        }
+
+        private static void gameLoop(Object stateInfo)
+        {
+            // movement and collision on client side for now
+            // spawn food if needed
+            // send out update
+            gamestate.update();
+            System.Console.WriteLine(gamestate.ToJSON());
+            foreach (KeyValuePair<string, Socket> c in clients)
+            {
+                // do something with entry.Value or entry.Key
+                Send(c.Value, gamestate.ToJSON() + "<EOF>");
+            };
         }
 
         private static void Send(Socket handler, String data)

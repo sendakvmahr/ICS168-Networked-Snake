@@ -19,7 +19,7 @@ public class StateObject
 	public StringBuilder sb = new StringBuilder();
 }
 
-public class AsynchronousClient
+public static class AsynchronousClient
 {
 	// The port number for the remote device.
 	private const int port = 11000;
@@ -31,6 +31,8 @@ public class AsynchronousClient
 		new ManualResetEvent(false);
 	private static ManualResetEvent receiveDone =
 		new ManualResetEvent(false);
+
+	private static Socket client;
 	
 	// The response from the remote device.
 	private static String response = String.Empty;
@@ -42,11 +44,12 @@ public class AsynchronousClient
 		{
 			// Establish the remote endpoint for the socket.
 			IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
-			IPAddress ipAddress = ipHostInfo.AddressList[0];
+			//IPAddress ipAddress = ipHostInfo.AddressList[0];
+			IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
 			IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 			
 			// Create a TCP/IP socket.
-			Socket client = new Socket(ipAddress.AddressFamily,
+			client = new Socket(ipAddress.AddressFamily,
 			                           SocketType.Stream, ProtocolType.Tcp);
 			
 			// Connect to the remote endpoint.
@@ -83,6 +86,7 @@ public class AsynchronousClient
 			Debug.Log(response);
 			Debug.Log("Response ----- ");
 			// Release the socket.
+			/*
 			try
 			{
 				client.Shutdown(SocketShutdown.Both);
@@ -93,6 +97,7 @@ public class AsynchronousClient
 			}
 			client.Close();
 			return response.Replace("<EOF>", "");
+			*/
 			
 		}
 		catch (Exception e)
@@ -166,6 +171,13 @@ public class AsynchronousClient
 				{
 					response = state.sb.ToString();
 					receiveDone.Set();
+					StateObject newstate = new StateObject();
+					newstate.workSocket = client;
+					Debug.Log (response);
+					// Call BeginReceive with a new state object
+					// NOTE THIS IS WHERE YOU TRY TO KEEP ON LISTENING FOR UPDATES
+					client.BeginReceive(newstate.buffer, 0, StateObject.BufferSize, 0,
+					                    new AsyncCallback(ReceiveCallback), newstate);
 				}
 				else
 				{

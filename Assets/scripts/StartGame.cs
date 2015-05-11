@@ -4,8 +4,9 @@ using System;
 using System.Text;
 
 public class StartGame : MonoBehaviour {
-	private string username = "";
-	private string password = "";
+	private string username = "yarko2";
+	private string password = "new2";
+	private string IP = "127.0.0.1";
 
 	public void ChangeToGame () {
 		string status = AsynchronousClient.StartClient (username, password);
@@ -26,6 +27,10 @@ public class StartGame : MonoBehaviour {
 		Debug.Log (pw);
 		password = pw;
 	}
-	
+
+	public void SetIP(string ip) {
+		Debug.Log (ip);
+		IP = ip;
+	}
 }
 		

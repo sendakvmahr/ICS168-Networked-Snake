@@ -17,9 +17,9 @@ namespace ConsoleApplication
 
         public Program()
         {
-            AsynchronousSocketListener.StartListening();
-            System.Console.ReadLine();
 
+            AsynchronousSocketListener.StartListening();
+            
         }
 
     }
