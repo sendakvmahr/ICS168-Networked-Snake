@@ -4,10 +4,10 @@ using System;
 using System.Text;
 
 public class StartGame : MonoBehaviour {
-	private string username = "yarko2";
-	private string password = "new2";
-	private string IP = "127.0.0.1";
 
+	private string username = "";
+	private string password = "";
+	private string IP = "";
 	public void ChangeToGame () {
 		string status = AsynchronousClient.StartClient (username, password);
 		Debug.Log (" *** " + status);

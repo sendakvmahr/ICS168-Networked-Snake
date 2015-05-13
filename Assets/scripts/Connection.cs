@@ -22,8 +22,13 @@ public class StateObject
 public static class AsynchronousClient
 {
 	// The port number for the remote device.
-	private const int port = 11000;
 	
+	public static GameState gameState = new GameState("to be replaced");
+	private const int port = 11000;
+	public static string playername; 
+
+	
+	public static bool gameStarted = false;
 	// ManualResetEvent instances signal completion.
 	private static ManualResetEvent connectDone =
 		new ManualResetEvent(false);
@@ -40,6 +45,8 @@ public static class AsynchronousClient
 	public static string StartClient(string username, string password)
 	{
 		// Connect to a remote device.
+		playername = username;
+		gameState = new GameState (playername);
 		try
 		{
 			// Establish the remote endpoint for the socket.
@@ -60,31 +67,22 @@ public static class AsynchronousClient
 			// Login
 			Send(client, "ICS168 Snake Project Start <EOF>");
 			sendDone.WaitOne();
-			
-			Debug.Log("Receiving in");
+
 			// Receive the response from the remote device.
 			Receive(client);
 			receiveDone.WaitOne();
 			
 			// Write the response to the console.
-			Debug.Log("Response ----- ");
-			Debug.Log(response);
-			Debug.Log("Response ----- ");
-			
-			Debug.Log("Sending Info");
+
 			
 			Send(client, "login " + username + " " + password + " <EOF>");
 			sendDone.WaitOne();
 			
 			response = "";
 			// Receive the response from the remote device.
-			
-			Debug.Log("Receiving Info2");
+
 			Receive(client);
 			receiveDone.WaitOne();
-			Debug.Log("Response ----- ");
-			Debug.Log(response);
-			Debug.Log("Response ----- ");
 			// Release the socket.
 			/*
 			try
@@ -103,8 +101,9 @@ public static class AsynchronousClient
 		catch (Exception e)
 		{
 			Debug.Log(e.ToString());
+			return "Incorrect";
 		}
-		
+		Debug.Log (response);
 		return response.Replace("<EOF>", "");
 	}
 	
@@ -165,17 +164,29 @@ public static class AsynchronousClient
 				state.sb.Append(Encoding.ASCII.GetString(state.buffer, 0, bytesRead));
 				string content = state.sb.ToString();
 				
-				Debug.Log("Content");
-				Debug.Log(content);
+				//Debug.Log("Content");
+				//Debug.Log(content);
 				if (content.IndexOf("<EOF>") > -1)
 				{
 					response = state.sb.ToString();
 					receiveDone.Set();
 					StateObject newstate = new StateObject();
 					newstate.workSocket = client;
-					Debug.Log (response);
-					// Call BeginReceive with a new state object
-					// NOTE THIS IS WHERE YOU TRY TO KEEP ON LISTENING FOR UPDATES
+					if (response[0] == '{')
+					{
+						//Debug.Log (response);
+						// Call BeginReceive with a new state object
+						// NOTE THIS IS WHERE YOU TRY TO KEEP ON LISTENING FOR UPDATES
+						if (gameStarted) {
+							// Time to update the game
+							gameState.update(response.Replace ("<EOF>", ""));
+							Send (client, "gamestate: " + gameState.ToJSON() + "<EOF>");
+							Debug.Log (gameState.ToJSON());
+						}
+						else {
+							Debug.Log ("not a gamestate");
+						}
+					}
 					client.BeginReceive(newstate.buffer, 0, StateObject.BufferSize, 0,
 					                    new AsyncCallback(ReceiveCallback), newstate);
 				}
@@ -202,7 +213,7 @@ public static class AsynchronousClient
 			Console.WriteLine(e.ToString());
 		}
 	}
-	
+
 	private static void Send(Socket client, String data)
 	{
 		// Convert the string data to byte data using ASCII encoding.

@@ -22,51 +22,95 @@ namespace ConsoleApplication
         }
     }
 
-    public class Snake
+    public class PlayerSnake
     {
         public string playerName;
         public Coordinate head;
         public List<Coordinate> tail;
-        public Snake(string name, Coordinate c)
+        public string direction;
+        public PlayerSnake(string name, Coordinate c, string d)
         {
             playerName = name;
             head = c;
             tail = new List<Coordinate>();
+            direction = d;
         }
     }
 
     public class GameState
     {
-        public List<Snake> snakes;
+        public List<PlayerSnake> snakes;
         public List<Coordinate> food;
         public bool finished = false;
+        public string currentPlayer;
 
         public GameState(string player1, string player2)
         {
-            snakes = new List<Snake>();
+            snakes = new List<PlayerSnake>();
             food = new List<Coordinate>();
-            snakes.Add(new Snake(player1, new Coordinate(0, 0)));
-            snakes.Add(new Snake(player2, new Coordinate(50, 0)));
+            food.Add(new Coordinate(0, 0));
+            snakes.Add(new PlayerSnake(player1, new Coordinate(-20, 0), "r"));
+            snakes.Add(new PlayerSnake(player2, new Coordinate(20, 0), "l"));
         }
 
-        public GameState(string JSON)
+        public GameState()
         {
-
         }
 
-        public void update()
+        public void update(string JSON)
         {
-            if (food.Count == 0)
+            Console.WriteLine(JSON);
+            GameState newgame = JsonConvert.DeserializeObject<GameState>(JSON);
+            PlayerSnake SnakeToChange = new PlayerSnake("", new Coordinate(0,0), "");
+            for (int i = 0; i < newgame.snakes.Count; i++)
             {
-                spawnFood();
+                if (newgame.snakes[i].playerName == newgame.currentPlayer)
+                {
+                    SnakeToChange = newgame.snakes[i];
+                }
+            }
+            for (int i = 0; i < snakes.Count; i++)
+            {
+                if (snakes[i].playerName == SnakeToChange.playerName)
+                {
+                    snakes[i].head = SnakeToChange.head;
+                    snakes[i].tail = SnakeToChange.tail;
+                }
+            }
+            if (newgame.finished)
+            {
+                finished = true;
+            }
+        }
+
+        public void mainLoop()
+        {
+            if (!finished)
+            {
+                if (food.Count == 0)
+                {
+                    spawnFood();
+                }
+            }
+        }
+
+
+        public void updateSnake(string player, string snakeInfo)
+        {
+            for (int i = 0; i < snakes.Count; i++)
+            {
+                if (snakes[i].playerName == player)
+                {
+                    // update the snake stuff
+                }
             }
         }
 
         public void spawnFood()
         {
             Random random = new Random();
-            int x = random.Next(0, 100);
-            int y = random.Next(0, 100);
+            int x = random.Next(-34, 34);
+            int y = random.Next(-24, 24);
             food.Add(new Coordinate(x, y));
         }
 

@@ -138,8 +138,10 @@ namespace ConsoleApplication
                     {
                         // All the data has been read from the 
                         // client. Display it on the console.
+                        /*
                         Console.WriteLine("Read {0} bytes from socket. \n\tData : {1}",
                             content.Length, content);
+                        */
                         if (content == "ICS168 Snake Project Start <EOF>")
                         {
                             Send(handler, "Ready<EOF>");
@@ -184,6 +186,10 @@ namespace ConsoleApplication
                         }
                         else if (content.StartsWith("gamestate: ")) {
                             // update gamestate with client snake position
+                            // take head and tail positions from the right client
+                            // 
+                            content = content.Replace("<EOF>", "").Replace("gamestate: ", "");
+                            gamestate.update(content);
                         }
                         else // Incorrect protocol
                         {
@@ -209,18 +215,24 @@ namespace ConsoleApplication
             }
             catch (Exception e)
             {
-                Console.WriteLine("Disconnect");
+                throw e;
+                Console.WriteLine(e.ToString());
             }
         }
 
         private static void StartGame()
         {
             Console.WriteLine("Starting");
-            gamestate = new GameState("p1", "p2");
+            List<String> names = new List<string>();
+            foreach (KeyValuePair<string, Socket> c in clients)
+            {
+                names.Add(c.Key);
+            };
+            gamestate = new GameState(names[0], names[1]);
 
             AutoResetEvent reset = new AutoResetEvent(false);
             TimerCallback timerDelegate = new TimerCallback(gameLoop);
-            Timer stateTimer = new Timer(timerDelegate, reset, 250, 250);
+            Timer stateTimer = new Timer(timerDelegate, reset, 500, 500);
         }
 
         private static void gameLoop(Object stateInfo)
@@ -228,8 +240,8 @@ namespace ConsoleApplication
             // movement and collision on client side for now
             // spawn food if needed
             // send out update
-            gamestate.update();
-            System.Console.WriteLine(gamestate.ToJSON());
+            gamestate.mainLoop();
+            //System.Console.WriteLine(gamestate.ToJSON());
             foreach (KeyValuePair<string, Socket> c in clients)
             {
                 // do something with entry.Value or entry.Key
